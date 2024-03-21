@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTPS_Listener_config" doc:name="HTTP Listener config" doc:id="18d7ad0c-771c-49dc-966d-4147350153f3" >
+		<http:listener-connection host="localhost" port="8081"/>
+	</http:listener-config>
+	<flow name="demo3Flow" doc:id="7d8e6430-3b73-42d1-ba6d-4bd759b9a003">
+		<http:listener doc:name="Listener" doc:id="f46108dc-82d3-4aae-9deb-467a96ae2915" config-ref="HTTPS_Listener_config" path="/geo" />
+		<http:request method="GET" doc:name="Request" doc:id="e40aad15-f937-42e1-8f3c-bb539262ca08" url="https://wft-geo-db.p.rapidapi.com/v1/geo/countries">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"X-RapidAPI-Host" : "wft-geo-db.p.rapidapi.com",
+	"X-RapidAPI-Key" : "d7f699cc8cmsh690e2502c613cb7p195fccjsnc0637616ebfd"
+}]]]></http:headers>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="68dda273-710d-47c6-8126-4e256cfc3cc5">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload.data
+map (value, index) -> { ("kraj " ++ index+1) :
+
+{"kod": value.code,"nazwa": value.name}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="demo3Flow1" doc:id="9ba9defb-bade-4d3d-963f-cd2fc78f4af0">
+		<http:listener doc:name="Listener" doc:id="caa531af-8d13-417a-b1e6-e74f0d9d71f9" config-ref="HTTPS_Listener_config" path="/cities" />
+		<http:request method="GET" doc:name="Request" doc:id="6332b1f6-752e-4848-bd37-69638d46aa08" url="https://wft-geo-db.p.rapidapi.com/v1/geo/cities">
+			<http:headers><![CDATA[#[output application/java
+---
+{
+	"X-RapidAPI-Host" : "wft-geo-db.p.rapidapi.com",
+	"X-RapidAPI-Key" : "d7f699cc8cmsh690e2502c613cb7p195fccjsnc0637616ebfd"
+}]]]></http:headers>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="2138140f-1e44-4f00-a966-adb8bdbd0dc9">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload.data
+map (value, index) -> { ("miasta " ++ index+1 ) :
+{"kraj": value.country, "miasto:": value.city,"kod": value.countryCode}}
+
+LUB 
+%dw 2.0
+output application/json
+import * from dw::core::Arrays
+var q = take(payload.data,5)
+
+---
+q
+
+map (value, index) -> { ("miasta " ++ index+1 ) :
+{"kraj": value.country, "miasto:": value.city,"kod": value.countryCode}}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
