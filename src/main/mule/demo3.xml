@@ -1,67 +1,89 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
-	xmlns="http://www.mulesoft.org/schema/mule/core"
-	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
 	<http:listener-config name="HTTPS_Listener_config" doc:name="HTTP Listener config" doc:id="18d7ad0c-771c-49dc-966d-4147350153f3" >
 		<http:listener-connection host="localhost" port="8081"/>
 	</http:listener-config>
-	<flow name="demo3Flow" doc:id="7d8e6430-3b73-42d1-ba6d-4bd759b9a003">
-		<http:listener doc:name="Listener" doc:id="f46108dc-82d3-4aae-9deb-467a96ae2915" config-ref="HTTPS_Listener_config" path="/geo" />
-		<http:request method="GET" doc:name="Request" doc:id="e40aad15-f937-42e1-8f3c-bb539262ca08" url="https://wft-geo-db.p.rapidapi.com/v1/geo/countries">
+	<configuration-properties doc:name="Configuration properties" doc:id="37f3649f-2e7e-4221-9284-01a976c5bb6b" file="dev.yaml" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="f5f9357d-7197-49d6-b72b-59a1f013c125" file="secure-dev.yaml" key="1234567812345678" />
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="b890f650-1d80-449f-9e12-8462f1db3c90" basePath="/v1/geo">
+		<http:request-connection host="${Host2}" protocol="HTTPS"/>
+	</http:request-config>
+	<flow name="demo3Flow" doc:id="dc325857-8d58-44b9-9502-d1babfe55a05" >
+		<http:listener doc:name="/geo" doc:id="5f64c588-35a0-454f-a437-225093e4a629" config-ref="HTTPS_Listener_config" path="/geo" />
+		<set-variable value="#[attributes.headers.searching]" doc:name="header to variable" doc:id="6e00f4a9-6ce1-4ee4-af6b-4c1653d3af95" variableName="header"/>
+		<choice doc:name="Choose search object" doc:id="8b4d7626-6b70-48de-aa37-07539683b218" >
+			<when expression='#[vars.header == "cities"]'>
+				<http:request method="GET" doc:name="Request cities" doc:id="18bd36fd-8b25-440c-9943-3d178b4a31d8" config-ref="HTTP_Request_configuration" path="/cities">
 			<http:headers><![CDATA[#[output application/java
 ---
 {
-	"X-RapidAPI-Host" : "wft-geo-db.p.rapidapi.com",
-	"X-RapidAPI-Key" : "d7f699cc8cmsh690e2502c613cb7p195fccjsnc0637616ebfd"
+	"X-RapidAPI-Host" : Mule::p('Host'),
+	"X-RapidAPI-Key" : Mule::p('secure::Key')
 }]]]></http:headers>
 		</http:request>
-		<ee:transform doc:name="Transform Message" doc:id="68dda273-710d-47c6-8126-4e256cfc3cc5">
+		<ee:transform doc:name="Return cities" doc:id="6853bfdb-fdb5-404a-9e7c-ce88ba572aab">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 payload.data
-map (value, index) -> { ("kraj " ++ index+1) :
+map (value, index) -> { ("cities " ++ index+1 ) :
+{"city": value.city, "contry:": value.country,"code": value.countryCode}}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<when expression='#[vars.header == "countries"]'>
+				<http:request method="GET" doc:name="Request countries" doc:id="5ea9bc39-1ee9-4fcb-8cf7-04a726da107e" config-ref="HTTP_Request_configuration" path="/countries" >
+					<http:headers ><![CDATA[#[output application/java
+---
+{
+	"X-RapidAPI-Host" : Mule::p('Host'),
+	"X-RapidAPI-Key" : Mule::p('secure::Key')
+}]]]></http:headers>
+				</http:request>
+				<ee:transform doc:name="Return Countries" doc:id="a5f5d6e5-b7cf-4bb1-b112-6ee2e81bedf8">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload.data
+map (value, index) -> { ("country " ++ index+1) :
 
-{"kod": value.code,"nazwa": value.name}
+{"code": value.code,"name": value.name}
 }]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-	</flow>
-	<flow name="demo3Flow1" doc:id="9ba9defb-bade-4d3d-963f-cd2fc78f4af0">
-		<http:listener doc:name="Listener" doc:id="caa531af-8d13-417a-b1e6-e74f0d9d71f9" config-ref="HTTPS_Listener_config" path="/cities" />
-		<http:request method="GET" doc:name="Request" doc:id="6332b1f6-752e-4848-bd37-69638d46aa08" url="https://wft-geo-db.p.rapidapi.com/v1/geo/cities">
+			</when>
+			<when expression='#[vars.header == "places"]'>
+				<http:request method="GET" doc:name="Request places" doc:id="36744731-95fc-4e51-adb6-3d05e0eaa3dd" config-ref="HTTP_Request_configuration" path="/places">
 			<http:headers><![CDATA[#[output application/java
 ---
 {
-	"X-RapidAPI-Host" : "wft-geo-db.p.rapidapi.com",
-	"X-RapidAPI-Key" : "d7f699cc8cmsh690e2502c613cb7p195fccjsnc0637616ebfd"
+	"X-RapidAPI-Host" : Mule::p('Host'),
+	"X-RapidAPI-Key" : Mule::p('secure::Key')
 }]]]></http:headers>
 		</http:request>
-		<ee:transform doc:name="Transform Message" doc:id="2138140f-1e44-4f00-a966-adb8bdbd0dc9">
+				<ee:transform doc:name="Return Places" doc:id="66406243-51ce-4cbc-a35b-b08b0bdc3e4d">
 			<ee:message>
 				<ee:set-payload><![CDATA[%dw 2.0
 output application/json
 ---
 payload.data
-map (value, index) -> { ("miasta " ++ index+1 ) :
-{"kraj": value.country, "miasto:": value.city,"kod": value.countryCode}}
-
-LUB 
-%dw 2.0
-output application/json
-import * from dw::core::Arrays
-var q = take(payload.data,5)
-
----
-q
-
-map (value, index) -> { ("miasta " ++ index+1 ) :
-{"kraj": value.country, "miasto:": value.city,"kod": value.countryCode}}]]></ee:set-payload>
+map (value, index) -> { ("place " ++ index+1 ) :
+{"name": value.name, "contry:": value.country,"population": value.population}}]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
+			</when>
+			<otherwise >
+				<logger level="WARN" doc:name="Incorrect  header " doc:id="5a11602b-03fd-4e6a-99a4-e67e73078afb" message="No search object found "/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Log succesful request " doc:id="2e07ed81-a5f3-4fd1-8e55-0f08efe07aa7" message='#["Request searching for " ++ vars.header ++ " was succesful"]'/>
 	</flow>
 </mule>
