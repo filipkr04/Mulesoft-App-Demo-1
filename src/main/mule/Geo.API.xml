@@ -14,7 +14,7 @@ http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/sc
 	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="b890f650-1d80-449f-9e12-8462f1db3c90" basePath="/v1/geo">
 		<http:request-connection host="${Host2}" protocol="HTTPS"/>
 	</http:request-config>
-	<flow name="demo3Flow" doc:id="dc325857-8d58-44b9-9502-d1babfe55a05" >
+	<flow name="GeoFlow" doc:id="dc325857-8d58-44b9-9502-d1babfe55a05" >
 		<http:listener doc:name="/geo" doc:id="5f64c588-35a0-454f-a437-225093e4a629" config-ref="HTTPS_Listener_config" path="/geo" />
 		<set-variable value="#[attributes.headers.searching]" doc:name="header to variable" doc:id="6e00f4a9-6ce1-4ee4-af6b-4c1653d3af95" variableName="header"/>
 		<choice doc:name="Choose search object" doc:id="8b4d7626-6b70-48de-aa37-07539683b218" >
